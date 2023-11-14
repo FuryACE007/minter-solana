@@ -20,15 +20,16 @@ import WalletComponent from "./WalletComponent";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 function App() {
-  const rpcEndpoint =
-    "https://solana-devnet.g.alchemy.com/v2/" +
-    process.env.REACT_APP_RPC_ENDPOINT;
-
+  const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
+  console.log("RPC endpoint", rpcEndpoint);
   const solNetwork = WalletAdapterNetwork.Devnet;
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     [solNetwork]
   );
+  if (!rpcEndpoint) {
+    return <div>RPC Not ready</div>;
+  }
 
   return (
     <ConnectionProvider endpoint={rpcEndpoint}>
