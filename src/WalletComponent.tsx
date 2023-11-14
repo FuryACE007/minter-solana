@@ -1,18 +1,8 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-import {
-  useConnection,
-  useWallet,
-  ConnectionProvider,
-  WalletProvider,
-} from "@solana/wallet-adapter-react";
-import {
-  WalletModalProvider,
-  WalletMultiButton,
-} from "@solana/wallet-adapter-react-ui";
-import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
-import { useMemo, useRef, useState } from "react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { useRef, useState } from "react";
 
 function WalletComponent() {
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
@@ -26,11 +16,19 @@ function WalletComponent() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
-  const submitHandler = () => {
+  const submitHandler = async () => {
     if (!connection || !publicKey) {
       return;
     } else {
       console.log("Pubkey", publicKey);
+
+      const accountSols = await connection
+        .getAccountInfo(publicKey)
+        .then((info) => {
+          if (info?.lamports != null)
+            console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
+          else console.log("No money :(");
+        });
     }
   };
 
