@@ -4,7 +4,10 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
 import { Box, Button, TextField, Typography } from "@mui/material";
 
 import "@fontsource/roboto/300.css";
@@ -15,6 +18,9 @@ import {
   WalletModalProvider,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
+
+// Don't miss this, u'll spend hours scratching your head thinking why it isn't working XD
+require("@solana/wallet-adapter-react-ui/styles.css");
 
 function App() {
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
@@ -30,13 +36,15 @@ function App() {
     process.env.REACT_APP_RPC_ENDPOINT;
 
   const solNetwork = WalletAdapterNetwork.Devnet;
-  const wallets = useMemo(() => [new PhantomWalletAdapter()], [solNetwork]);
+  const wallets = useMemo(
+    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    [solNetwork]
+  );
 
   return (
     <ConnectionProvider endpoint={rpcEndpoint}>
       <WalletProvider wallets={wallets}>
         <WalletModalProvider>
-          <WalletMultiButton />
           <Box
             sx={{
               width: "100%",
@@ -58,7 +66,7 @@ function App() {
               <Typography variant="h5" color="secondary">
                 Token Minting Machine
               </Typography>
-
+              <WalletMultiButton />
               <TextField
                 id="token-name"
                 label="Token Name"
