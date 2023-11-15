@@ -3,6 +3,14 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useRef, useState } from "react";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { signerIdentity } from "@metaplex-foundation/umi";
+import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
+// import { mplToolbox } from "@metaplex-foundation/mpl-toolbox";
+import {
+  fetchDigitalAsset,
+  mplTokenMetadata,
+} from "@metaplex-foundation/mpl-token-metadata";
 
 function WalletComponent() {
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
@@ -14,22 +22,32 @@ function WalletComponent() {
   const [tokenSymbol, setTokenSymbol] = useState("");
 
   const { connection } = useConnection();
-  const { publicKey } = useWallet();
+  //   const { publicKey } = useWallet();
+  const wallet = useWallet();
+
+  const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
+
+  if (!rpcEndpoint) return<div>Loading</div>;
+
+  const umi = createUmi(rpcEndpoint).use(mplTokenMetadata());
 
   const submitHandler = async () => {
-    if (!connection || !publicKey) {
+    if (!connection || !wallet.publicKey) {
       return;
-    } else {
-      console.log("Pubkey", publicKey);
-
-      const accountSols = await connection
-        .getAccountInfo(publicKey)
-        .then((info) => {
-          if (info?.lamports != null)
-            console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
-          else console.log("No money :(");
-        });
     }
+    console.log("Pubkey", wallet.publicKey);
+
+    await connection.getAccountInfo(wallet.publicKey).then((info) => {
+      if (info?.lamports != null)
+        console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
+      else console.log("No money :(");
+    });
+
+    umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
+
+    setTokenName(tokenNameRef.current?.value || "");
+    setTokenSymbol(tokenSymbolRef.current?.value || "");
+    setTokenDescription(tokenDescriptionRef.current?.value || "");
   };
 
   return (
