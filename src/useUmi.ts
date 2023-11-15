@@ -4,17 +4,7 @@ import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
 import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createContext, useContext, useMemo } from "react";
-
-// type UmiContext = {
-//   umi: Umi | null;
-// };
-
-// const DEFAULT_CONTEXT: UmiContext = {
-//   umi: null,
-// };
-
-// export const UmiContext = createContext<UmiContext>(DEFAULT_CONTEXT);
+import { useMemo } from "react";
 
 export function useUmi(): Umi {
   const wallet = useWallet();
@@ -23,8 +13,6 @@ export function useUmi(): Umi {
   if (!rpcEndpoint) {
     throw new Error("RPC endpoint is not defined. ");
   }
-
-  //   const umi = useContext(UmiContext).umi;
 
   const umi = useMemo(() => {
     return createUmi(rpcEndpoint)

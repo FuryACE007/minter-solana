@@ -2,34 +2,33 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { useRef, useState } from "react";
-import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { signerIdentity } from "@metaplex-foundation/umi";
+import { useRef } from "react";
+import {
+  createGenericFileFromJson,
+  generateSigner,
+  signerIdentity,
+} from "@metaplex-foundation/umi";
 import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
 import { createFungibleAsset } from "@metaplex-foundation/mpl-token-metadata";
 import {
   fetchDigitalAsset,
   mplTokenMetadata,
 } from "@metaplex-foundation/mpl-token-metadata";
+import { useUmi } from "./useUmi";
 
 function WalletComponent() {
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
 
-  const [tokenName, setTokenName] = useState("");
-  const [tokenDescription, setTokenDescription] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
-
   const { connection } = useConnection();
-  //   const { publicKey } = useWallet();
   const wallet = useWallet();
 
   const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
 
-  if (!rpcEndpoint) return <div>Loading</div>;
+  const umi = useUmi();
 
-  const umi = createUmi(rpcEndpoint).use(mplTokenMetadata());
+  if (!rpcEndpoint) return <div>Loading</div>;
 
   const submitHandler = async () => {
     if (!connection || !wallet.publicKey) {
@@ -42,16 +41,22 @@ function WalletComponent() {
         console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
       else console.log("No money :(");
     });
-
     umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
 
-    setTokenName(tokenNameRef.current?.value || "");
-    setTokenSymbol(tokenSymbolRef.current?.value || "");
-    setTokenDescription(tokenDescriptionRef.current?.value || "");
+    const tokenName = tokenNameRef.current?.value;
+    const tokenSymbol = tokenSymbolRef.current?.value;
+    const tokenDescription = tokenDescriptionRef.current?.value;
+
+    console.log("WalletComponent:PubKey", wallet.publicKey);
+    console.log(tokenName, tokenSymbol, tokenDescription);
 
     // Create Token
-    
-
+    const mint = generateSigner(umi);
+    const tokenMetadata = createGenericFileFromJson({
+      tokenName,
+      tokenSymbol,
+      tokenDescription,
+    });
   };
 
   return (
@@ -82,14 +87,16 @@ function WalletComponent() {
           label="Token Name"
           variant="outlined"
           placeholder="Enter the Token name"
-          ref={tokenNameRef}
+          inputRef={tokenNameRef}
+          required
         />
         <TextField
           id="token-symbol"
           label="Token Symbol"
           variant="outlined"
           placeholder="$TOKEN"
-          ref={tokenSymbolRef}
+          inputRef={tokenSymbolRef}
+          required
         />
         <TextField
           id="token-description"
@@ -98,7 +105,8 @@ function WalletComponent() {
           rows={4}
           variant="outlined"
           placeholder="Enter the Token description"
-          ref={tokenDescriptionRef}
+          inputRef={tokenDescriptionRef}
+          required
         />
         <Button variant="contained" color="secondary" onClick={submitHandler}>
           Mint Token
