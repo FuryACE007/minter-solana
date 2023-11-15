@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { signerIdentity } from "@metaplex-foundation/umi";
 import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
-// import { mplToolbox } from "@metaplex-foundation/mpl-toolbox";
+import { createFungibleAsset } from "@metaplex-foundation/mpl-token-metadata";
 import {
   fetchDigitalAsset,
   mplTokenMetadata,
@@ -27,7 +27,7 @@ function WalletComponent() {
 
   const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
 
-  if (!rpcEndpoint) return<div>Loading</div>;
+  if (!rpcEndpoint) return <div>Loading</div>;
 
   const umi = createUmi(rpcEndpoint).use(mplTokenMetadata());
 
@@ -48,6 +48,10 @@ function WalletComponent() {
     setTokenName(tokenNameRef.current?.value || "");
     setTokenSymbol(tokenSymbolRef.current?.value || "");
     setTokenDescription(tokenDescriptionRef.current?.value || "");
+
+    // Create Token
+    
+
   };
 
   return (
