@@ -57,6 +57,15 @@ function WalletComponent() {
       tokenSymbol,
       tokenDescription,
     });
+
+    // upload the tokenMetadata
+    const uri = await umi.uploader.upload([tokenMetadata]);
+
+    console.log("TokenMetadata uploaded successfully", uri);
+
+    createFungibleAsset(umi, {
+      
+    })
   };
 
   return (
