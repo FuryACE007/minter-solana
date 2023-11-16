@@ -43,29 +43,32 @@ function WalletComponent() {
     });
     umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
 
-    const tokenName = tokenNameRef.current?.value;
-    const tokenSymbol = tokenSymbolRef.current?.value;
-    const tokenDescription = tokenDescriptionRef.current?.value;
+    const tokenName = tokenNameRef.current?.value || "";
+    const tokenSymbol = tokenSymbolRef.current?.value || "";
+    const tokenDescription = tokenDescriptionRef.current?.value || "";
 
     console.log("WalletComponent:PubKey", wallet.publicKey);
     console.log(tokenName, tokenSymbol, tokenDescription);
 
     // Create Token
     const mint = generateSigner(umi);
-    const tokenMetadata = createGenericFileFromJson({
+    const tokenMetadata = {
       tokenName,
       tokenSymbol,
-      tokenDescription,
-    });
+      tokenDescription
+    }
+    // const tokenMetadataFile = createGenericFileFromJson(tokenMetadata);
 
     // upload the tokenMetadata
-    const uri = await umi.uploader.upload([tokenMetadata]);
+    const uri = await umi.uploader.uploadJson([tokenMetadata]);
 
     console.log("TokenMetadata uploaded successfully", uri);
 
-    createFungibleAsset(umi, {
-      
-    })
+    // createFungibleAsset(umi, {
+    //   mint,
+    //   name: tokenMetadata.tokenName,
+
+    // })
   };
 
   return (
