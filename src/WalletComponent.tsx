@@ -6,6 +6,7 @@ import { useRef } from "react";
 import {
   createGenericFileFromJson,
   generateSigner,
+  percentAmount,
   signerIdentity,
 } from "@metaplex-foundation/umi";
 import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
@@ -64,11 +65,21 @@ function WalletComponent() {
 
     console.log("TokenMetadata uploaded successfully", uri);
 
-    // createFungibleAsset(umi, {
-    //   mint,
-    //   name: tokenMetadata.tokenName,
-
-    // })
+    createFungibleAsset(umi, {
+      mint,
+      name: tokenMetadata.tokenName,
+      symbol: tokenMetadata.tokenSymbol,
+      uri: uri,
+      sellerFeeBasisPoints: percentAmount(0),
+      isMutable: true,
+      isCollection: false,
+      authority: umi.identity,
+      decimals: 9,
+      // amount: 10000,
+      // tokenOwner: umi.identity.publicKey
+    }).sendAndConfirm(umi).then(() => {
+      console.log(tokenMetadata.tokenName + "minted successfully: ", mint.publicKey);
+    });
   };
 
   return (

@@ -21,7 +21,6 @@ require("@solana/wallet-adapter-react-ui/styles.css");
 
 function App() {
   const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
-  console.log("RPC endpoint", rpcEndpoint);
   const solNetwork = WalletAdapterNetwork.Devnet;
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
