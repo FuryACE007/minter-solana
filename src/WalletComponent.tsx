@@ -1,10 +1,15 @@
+/*------------------------------------------------------------------------------------------------------------------------------
+- This wallet component is wrapped by the Solana Wallet Adapter's wrappers
+- This contains the logic for creating and minting fungible tokens
+- The detailed output of the project can be seen in the console log.
+*/
+
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useRef } from "react";
 import {
-  createGenericFileFromJson,
   generateSigner,
   percentAmount,
   signerIdentity,
@@ -15,37 +20,44 @@ import {
   createFungibleAsset,
   mintV1,
 } from "@metaplex-foundation/mpl-token-metadata";
-import {
-  fetchDigitalAsset,
-  mplTokenMetadata,
-} from "@metaplex-foundation/mpl-token-metadata";
 import { useUmi } from "./useUmi";
 
 function WalletComponent() {
+  // We are extracting the user input using the useRef() hook
+
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
 
+  // Using the solana wallet adapter to get the connection object and the wallet instance ( to be used only after connecting the wallet )
+
   const { connection } = useConnection();
   const wallet = useWallet();
 
+  // Using the Helius devnet rpc endpoint
   const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
 
+  // using our custom hook 'useUmi' to get an instance of the umi
   const umi = useUmi();
 
-  if (!rpcEndpoint) return <div>Loading</div>;
+  if (!rpcEndpoint) return <div>Loading</div>; // for type checking, avoid undefined rpcEndpoint
 
+  // function triggered when the 'Mint Token' button is clicked
   const submitHandler = async () => {
+    // checking if the web app is connected to the wallet
     if (!connection || !wallet.publicKey) {
       return;
     }
     console.log("Pubkey", wallet.publicKey);
 
+    // Checking the connected wallet's SOL balance
     await connection.getAccountInfo(wallet.publicKey).then((info) => {
       if (info?.lamports != null)
         console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
       else console.log("No money :(");
     });
+
+    // Using the connected wallet as the signer for the umi instance
     umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
 
     const tokenName = tokenNameRef.current?.value || "";
@@ -55,19 +67,19 @@ function WalletComponent() {
     console.log("WalletComponent:PubKey", wallet.publicKey);
     console.log(tokenName, tokenSymbol, tokenDescription);
 
-    // Create Token
     const mint = generateSigner(umi);
     const tokenMetadata = {
       tokenName,
       tokenSymbol,
       tokenDescription,
     };
-    // const tokenMetadataFile = createGenericFileFromJson(tokenMetadata);
 
-    // upload the tokenMetadata
+    // upload the tokenMetadata to irys ( previously bundlr)
     const uri = await umi.uploader.uploadJson([tokenMetadata]);
 
     console.log("TokenMetadata uploaded successfully", uri);
+
+    // create the fungible token
 
     createFungibleAsset(umi, {
       mint,
@@ -78,20 +90,21 @@ function WalletComponent() {
       isMutable: true,
       isCollection: false,
       authority: umi.identity,
-      decimals: 9,
+      decimals: 9, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
       .then(() => {
         console.log(
-          tokenMetadata.tokenName + "minted successfully: ",
+          tokenMetadata.tokenName + "created successfully: ",
           mint.publicKey
         );
       })
+      // Minting the fungible token using the mpl-token-metadata library's mintV1 function
       .then(() => {
         mintV1(umi, {
           mint: mint.publicKey,
           authority: umi.identity,
-          amount: 10, // basically this would be 10*10^9 tokens( decimal: 9 )
+          amount: 10,
           tokenOwner: umi.identity.publicKey,
           tokenStandard: TokenStandard.Fungible,
         })
@@ -102,11 +115,8 @@ function WalletComponent() {
               tokenMetadata.tokenSymbol,
               "minted successfully!"
             );
-            alert("10 " + tokenMetadata.tokenSymbol + "minted successfully!");
           });
       });
-
-    // mint;
   };
 
   return (
