@@ -10,7 +10,11 @@ import {
   signerIdentity,
 } from "@metaplex-foundation/umi";
 import { createSignerFromWalletAdapter } from "@metaplex-foundation/umi-signer-wallet-adapters";
-import { createFungibleAsset } from "@metaplex-foundation/mpl-token-metadata";
+import {
+  TokenStandard,
+  createFungibleAsset,
+  mintV1,
+} from "@metaplex-foundation/mpl-token-metadata";
 import {
   fetchDigitalAsset,
   mplTokenMetadata,
@@ -56,8 +60,8 @@ function WalletComponent() {
     const tokenMetadata = {
       tokenName,
       tokenSymbol,
-      tokenDescription
-    }
+      tokenDescription,
+    };
     // const tokenMetadataFile = createGenericFileFromJson(tokenMetadata);
 
     // upload the tokenMetadata
@@ -75,11 +79,34 @@ function WalletComponent() {
       isCollection: false,
       authority: umi.identity,
       decimals: 9,
-      // amount: 10000,
-      // tokenOwner: umi.identity.publicKey
-    }).sendAndConfirm(umi).then(() => {
-      console.log(tokenMetadata.tokenName + "minted successfully: ", mint.publicKey);
-    });
+    })
+      .sendAndConfirm(umi)
+      .then(() => {
+        console.log(
+          tokenMetadata.tokenName + "minted successfully: ",
+          mint.publicKey
+        );
+      })
+      .then(() => {
+        mintV1(umi, {
+          mint: mint.publicKey,
+          authority: umi.identity,
+          amount: 10, // basically this would be 10*10^9 tokens( decimal: 9 )
+          tokenOwner: umi.identity.publicKey,
+          tokenStandard: TokenStandard.Fungible,
+        })
+          .sendAndConfirm(umi)
+          .then(() => {
+            console.log(
+              "10 ",
+              tokenMetadata.tokenSymbol,
+              "minted successfully!"
+            );
+            alert("10 " + tokenMetadata.tokenSymbol + "minted successfully!");
+          });
+      });
+
+    // mint;
   };
 
   return (
