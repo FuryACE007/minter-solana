@@ -58,7 +58,7 @@ function WalletComponent() {
     });
 
     // Using the connected wallet as the signer for the umi instance
-    umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
+    // umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
 
     const tokenName = tokenNameRef.current?.value || "";
     const tokenSymbol = tokenSymbolRef.current?.value || "";
@@ -90,7 +90,7 @@ function WalletComponent() {
       isMutable: true,
       isCollection: false,
       authority: umi.identity,
-      decimals: 9, // the divisibility of the fungible token
+      decimals: 3, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
       .then(() => {
@@ -102,9 +102,9 @@ function WalletComponent() {
       // Minting the fungible token using the mpl-token-metadata library's mintV1 function
       .then(() => {
         mintV1(umi, {
-          mint: mint.publicKey,
-          authority: umi.identity,
-          amount: 10,
+          mint: mint.publicKey, // token to mint
+          authority: umi.identity, // the token minting authority
+          amount: 100000000, // basically it's x10^decimals tokens
           tokenOwner: umi.identity.publicKey,
           tokenStandard: TokenStandard.Fungible,
         })
