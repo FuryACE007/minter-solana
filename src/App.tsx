@@ -1,3 +1,4 @@
+// This component basically wraps the WalletComponent in thw solana wallet adapter wrappers
 import React, { useMemo } from "react";
 import {
   ConnectionProvider,

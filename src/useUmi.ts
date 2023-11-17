@@ -1,3 +1,5 @@
+/* This is a custom hook to reduce the repeated configuration of the umi instance */
+
 import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
 import type { Umi } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
