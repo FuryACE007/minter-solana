@@ -1,8 +1,8 @@
 /*------------------------------------------------------------------------------------------------------------------------------
-- This wallet component is wrapped by the Solana Wallet Adapter's wrappers
-- This contains the logic for creating and minting fungible tokens
-- The detailed output of the project can be seen in the console log.
-*/
+  - This wallet component is wrapped by the Solana Wallet Adapter's wrappers
+  - This contains the logic for creating and minting fungible tokens
+  - The detailed output of the project can be seen in the console log.
+  */
 
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -24,7 +24,6 @@ import { useUmi } from "./useUmi";
 
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
-
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
@@ -58,7 +57,7 @@ function WalletComponent() {
     });
 
     // Using the connected wallet as the signer for the umi instance
-    // umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
+    umi.use(signerIdentity(createSignerFromWalletAdapter(wallet)));
 
     const tokenName = tokenNameRef.current?.value || "";
     const tokenSymbol = tokenSymbolRef.current?.value || "";
@@ -102,13 +101,15 @@ function WalletComponent() {
       // Minting the fungible token using the mpl-token-metadata library's mintV1 function
       .then(() => {
         mintV1(umi, {
-          mint: mint.publicKey, // token to mint
-          authority: umi.identity, // the token minting authority
-          amount: 100000000, // basically it's x10^decimals tokens
+          mint: mint.publicKey,
+          authority: umi.identity,
+          amount: 100000000,
           tokenOwner: umi.identity.publicKey,
           tokenStandard: TokenStandard.Fungible,
         })
-          .sendAndConfirm(umi)
+          .sendAndConfirm(umi, { send: { skipPreflight: true } }) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
+          // .sendAndConfirm(umi) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
+          //skipPreflight: true -> this option is only used for debugging
           .then(() => {
             console.log(
               "10 ",
@@ -117,6 +118,9 @@ function WalletComponent() {
             );
           });
       });
+    // .then(() => {
+    //   wallet.disconnect();
+    // });
   };
 
   return (
