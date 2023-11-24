@@ -98,26 +98,24 @@ function WalletComponent() {
           mint.publicKey
         );
       })
-      // Minting the fungible token using the mpl-token-metadata library's mintV1 function
-      .then(() => {
-        mintV1(umi, {
-          mint: mint.publicKey,
-          authority: umi.identity,
-          amount: 100000000,
-          tokenOwner: umi.identity.publicKey,
-          tokenStandard: TokenStandard.Fungible,
-        })
-          .sendAndConfirm(umi, { send: { skipPreflight: true } }) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
-          // .sendAndConfirm(umi) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
-          //skipPreflight: true -> this option is only used for debugging
-          .then(() => {
-            console.log(
-              "10 ",
-              tokenMetadata.tokenSymbol,
-              "minted successfully!"
-            );
-          });
-      });
+    // Minting the fungible token using the mpl-token-metadata library's mintV1 function
+    // .then(() => {
+    //   mintV1(umi, {
+    //     mint: mint.publicKey,
+    //     authority: umi.identity,
+    //     amount: 100000000,
+    //     tokenOwner: umi.identity.publicKey,
+    //     tokenStandard: TokenStandard.Fungible,
+    //   })
+    //     .sendAndConfirm(umi, { send: { skipPreflight: true } }) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
+    //     .then(() => {
+    //       console.log(
+    //         "10 ",
+    //         tokenMetadata.tokenSymbol,
+    //         "minted successfully!"
+    //       );
+    //     });
+    // });
     // .then(() => {
     //   wallet.disconnect();
     // });
