@@ -4,11 +4,7 @@ import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
+// import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -22,11 +18,7 @@ require("@solana/wallet-adapter-react-ui/styles.css");
 
 function App() {
   const rpcEndpoint = process.env.REACT_APP_RPC_ENDPOINT;
-  const solNetwork = WalletAdapterNetwork.Devnet;
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [solNetwork]
-  );
+  const wallets = useMemo(() => [], []);
   if (!rpcEndpoint) {
     return <div>RPC Not ready</div>;
   }
