@@ -252,7 +252,7 @@ function WalletComponent() {
           </Button>
 
           <Button variant="contained" color="secondary" sx={{ margin: '0.3rem' }} onClick={resetHandler}>
-            Rest
+            Reset Token
           </Button>
         </Box>
         }
