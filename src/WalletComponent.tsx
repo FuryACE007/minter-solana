@@ -21,7 +21,8 @@ import {
   mintV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import { useUmi } from "./useUmi";
-import { red } from "@mui/material/colors";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
@@ -50,7 +51,6 @@ function WalletComponent() {
   if (connection && wallet.publicKey) {
     connection.getAccountInfo(wallet.publicKey).then((info) => {
       if (info?.lamports != null) {
-        console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
         setBalance(info?.lamports / LAMPORTS_PER_SOL);
       }
       else console.log("No money :(");
@@ -68,10 +68,20 @@ function WalletComponent() {
     // Checking the connected wallet's SOL balance
     await connection.getAccountInfo(wallet.publicKey).then((info) => {
       if (info?.lamports != null) {
-        console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
         setBalance(info?.lamports / LAMPORTS_PER_SOL);
       }
-      else alert("No money :(");
+      else {
+        toast.error('You have insufficient SOL tokens!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      };
     });
 
     // Using the connected wallet as the signer for the umi instance
@@ -116,32 +126,21 @@ function WalletComponent() {
           tokenMetadata.tokenName + "created successfully: ",
           mint.publicKey
         );
+        toast.success('🦄 Token created successfully!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
         setCanMintTokens(true);
       })
-    // Minting the fungible token using the mpl-token-metadata library's mintV1 function
-    // .then(() => {
-    //   mintV1(umi, {
-    //     mint: mint.publicKey,
-    //     authority: umi.identity,
-    //     amount: 100000000,
-    //     tokenOwner: umi.identity.publicKey,
-    //     tokenStandard: TokenStandard.Fungible,
-    //   })
-    //     .sendAndConfirm(umi, { send: { skipPreflight: true } }) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
-    //     .then(() => {
-    //       console.log(
-    //         "10 ",
-    //         tokenMetadata.tokenSymbol,
-    //         "minted successfully!"
-    //       );
-    //     });
-    // });
-    // .then(() => {
-    //   wallet.disconnect();
-    // });
   };
+  // Minting the fungible token using the mpl-token-metadata library's mintV1 function
   const mintHandler = () => {
-
     const tokensToMint = mintAmountRef.current?.value || 0;
     mintV1(umi, {
       mint: mint.publicKey,
@@ -155,6 +154,16 @@ function WalletComponent() {
         console.log(
           "minted successfully!"
         );
+        toast.success('🦄 Token minted successfully!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
       });
   };
 
@@ -212,6 +221,19 @@ function WalletComponent() {
           inputRef={tokenDescriptionRef}
           required
         />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+        <ToastContainer />
         <Button variant="contained" color="secondary" onClick={submitHandler}>
           Create Token
         </Button>
