@@ -8,7 +8,7 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   generateSigner,
   percentAmount,
@@ -21,9 +21,11 @@ import {
   mintV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import { useUmi } from "./useUmi";
+import { red } from "@mui/material/colors";
 
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
+  const [balance, setBalance] = useState(0);
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
@@ -41,6 +43,17 @@ function WalletComponent() {
 
   if (!rpcEndpoint) return <div>Loading</div>; // for type checking, avoid undefined rpcEndpoint
 
+  if (connection && wallet.publicKey) {
+
+    connection.getAccountInfo(wallet.publicKey).then((info) => {
+      if (info?.lamports != null) {
+        console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
+        setBalance(info?.lamports / LAMPORTS_PER_SOL);
+      }
+      else console.log("No money :(");
+    });
+  }
+
   // function triggered when the 'Mint Token' button is clicked
   const submitHandler = async () => {
     // checking if the web app is connected to the wallet
@@ -51,8 +64,10 @@ function WalletComponent() {
 
     // Checking the connected wallet's SOL balance
     await connection.getAccountInfo(wallet.publicKey).then((info) => {
-      if (info?.lamports != null)
+      if (info?.lamports != null) {
         console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
+        setBalance(info?.lamports / LAMPORTS_PER_SOL);
+      }
       else console.log("No money :(");
     });
 
@@ -144,6 +159,7 @@ function WalletComponent() {
           Token Minting Machine
         </Typography>
         <WalletMultiButton />
+        <Typography variant="subtitle1" sx={{ color: '#3D30A2' }}>Wallet Balance: {balance} SOL</Typography>
         <TextField
           id="token-name"
           label="Token Name"
