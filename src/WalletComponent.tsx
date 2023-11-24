@@ -26,9 +26,12 @@ import { red } from "@mui/material/colors";
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
   const [balance, setBalance] = useState(0);
+  const [canMintTokens, setCanMintTokens] = useState(false);
+
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
+  const mintAmountRef = useRef<HTMLInputElement | null>(null);
 
   // Using the solana wallet adapter to get the connection object and the wallet instance ( to be used only after connecting the wallet )
 
@@ -40,11 +43,11 @@ function WalletComponent() {
 
   // using our custom hook 'useUmi' to get an instance of the umi
   const umi = useUmi();
+  const [mint, setMint] = useState(generateSigner(umi));
 
   if (!rpcEndpoint) return <div>Loading</div>; // for type checking, avoid undefined rpcEndpoint
 
   if (connection && wallet.publicKey) {
-
     connection.getAccountInfo(wallet.publicKey).then((info) => {
       if (info?.lamports != null) {
         console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
@@ -68,7 +71,7 @@ function WalletComponent() {
         console.log("Account balances", info?.lamports / LAMPORTS_PER_SOL);
         setBalance(info?.lamports / LAMPORTS_PER_SOL);
       }
-      else console.log("No money :(");
+      else alert("No money :(");
     });
 
     // Using the connected wallet as the signer for the umi instance
@@ -82,6 +85,7 @@ function WalletComponent() {
     console.log(tokenName, tokenSymbol, tokenDescription);
 
     const mint = generateSigner(umi);
+    setMint(mint)
     const tokenMetadata = {
       tokenName,
       tokenSymbol,
@@ -112,6 +116,7 @@ function WalletComponent() {
           tokenMetadata.tokenName + "created successfully: ",
           mint.publicKey
         );
+        setCanMintTokens(true);
       })
     // Minting the fungible token using the mpl-token-metadata library's mintV1 function
     // .then(() => {
@@ -135,6 +140,27 @@ function WalletComponent() {
     //   wallet.disconnect();
     // });
   };
+  const mintHandler = () => {
+
+    const tokensToMint = mintAmountRef.current?.value || 0;
+    mintV1(umi, {
+      mint: mint.publicKey,
+      authority: umi.identity,
+      amount: +tokensToMint,
+      tokenOwner: umi.identity.publicKey,
+      tokenStandard: TokenStandard.Fungible,
+    })
+      .sendAndConfirm(umi, { send: { skipPreflight: true } }) // preflight is Solana's simulation of the txn, if simulation fails, txn is failed and not even sent to the chains
+      .then(() => {
+        console.log(
+          "minted successfully!"
+        );
+      });
+  };
+
+  const resetHandler = () => {
+    setCanMintTokens(false);
+  }
 
   return (
     <Box
@@ -187,8 +213,27 @@ function WalletComponent() {
           required
         />
         <Button variant="contained" color="secondary" onClick={submitHandler}>
-          Mint Token
+          Create Token
         </Button>
+        {canMintTokens && <Box>
+          <TextField
+            id="mint-amount"
+            label="Number of Tokens to mint"
+            variant="outlined"
+            placeholder=" Enter required number of tokens * 1000"
+            inputRef={mintAmountRef}
+            required
+          />
+
+          <Button variant="contained" color="secondary" onClick={mintHandler}>
+            Mint Token
+          </Button>
+
+          <Button variant="contained" color="secondary" sx={{ margin: '0.3rem' }} onClick={resetHandler}>
+            Rest
+          </Button>
+        </Box>
+        }
       </Box>
     </Box>
   );
