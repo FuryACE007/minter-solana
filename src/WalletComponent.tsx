@@ -174,20 +174,20 @@ function WalletComponent() {
   };
 
   const createWalletHandler = async () => {
-    // const wallets = [];
+    const wallets = [];
     const consumableWallets = numOfConsumbaleWallets.current?.value || "0";
     for (let i = 0; i < +consumableWallets; i++) {
-      // let seedPhrase = generateMnemonic();
-      // let keyPair = Keypair.fromSeed(mnemonicToSeedSync(seedPhrase));
-      // let pubkey = new PublicKey(keyPair.publicKey);
+      // generate wallet
+      const mnemonic = generateMnemonic();
 
-      // let walletObject = {
-      //   seedPhrase,
-      //   pubkey,
-      // };
-      // wallets.push(walletObject);
-      console.log("Wallets created! ");
+      // Load waller from the mnemonic
+      const seed = mnemonicToSeedSync(mnemonic);
+      const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
+      const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
+
+      wallets.push(seed32);
     }
+    console.log("Wallets created! ", wallets);
   };
 
   const resetHandler = () => {
