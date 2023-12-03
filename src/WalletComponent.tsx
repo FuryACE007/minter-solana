@@ -185,7 +185,7 @@ function WalletComponent() {
       const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
       const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
 
-      wallets.push(seed32);
+      wallets.push(mnemonic);
     }
     console.log("Wallets created! ", wallets);
   };
