@@ -10,8 +10,10 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useRef, useState } from "react";
 import {
+  SolAmount,
   generateSigner,
   percentAmount,
+  publicKey,
   signerIdentity,
   transactionBuilder,
 } from "@metaplex-foundation/umi";
@@ -25,6 +27,7 @@ import { useUmi } from "./useUmi";
 import { ToastContainer, toast } from "react-toastify";
 import { generateMnemonic, mnemonicToSeedSync } from "bip39";
 import "react-toastify/dist/ReactToastify.css";
+import { transferSol } from "@metaplex-foundation/mpl-toolbox";
 
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
@@ -188,6 +191,33 @@ function WalletComponent() {
       wallets.push(mnemonic);
     }
     console.log("Wallets created! ", wallets);
+    toast.success("🦄 Wallets created successfully, now funding them...", {
+      position: "top-right",
+      autoClose: 1000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+    let txBuilder = transactionBuilder();
+
+    const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
+    const solprice: SolAmount = {
+      identifier: "SOL",
+      decimals: 9,
+      basisPoints: BigInt(price * 1000000000),
+    };
+    const destinationPubkey = new PublicKey(
+      "3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM"
+    );
+
+    transferSol(umi, {
+      source: umi.payer,
+      destination: publicKey("3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM"),
+      amount: solprice,
+    });
   };
 
   const resetHandler = () => {
