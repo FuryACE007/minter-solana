@@ -10,8 +10,10 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useRef, useState } from "react";
 import {
+  SolAmount,
   generateSigner,
   percentAmount,
+  publicKey,
   signerIdentity,
   transactionBuilder,
 } from "@metaplex-foundation/umi";
@@ -25,6 +27,7 @@ import { useUmi } from "./useUmi";
 import { ToastContainer, toast } from "react-toastify";
 import { generateMnemonic, mnemonicToSeedSync } from "bip39";
 import "react-toastify/dist/ReactToastify.css";
+import { transferSol } from "@metaplex-foundation/mpl-toolbox";
 
 function WalletComponent() {
   // We are extracting the user input using the useRef() hook
@@ -61,7 +64,7 @@ function WalletComponent() {
 
   // price calculation function
   const calculateMintPriceInLamports = (amount: number) => {
-    const lamports = amount * 0.0001 * LAMPORTS_PER_SOL; // 0.0001 SOLs per token
+    const lamports = amount * 0.0000001 * LAMPORTS_PER_SOL; // 0.0000001 SOLs per token
     return lamports;
   };
 
@@ -80,7 +83,7 @@ function WalletComponent() {
       } else {
         toast.error("You have insufficient SOL tokens!", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 1000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -124,8 +127,8 @@ function WalletComponent() {
       sellerFeeBasisPoints: percentAmount(0),
       isMutable: true,
       isCollection: false,
-      authority: umi.identity,
-      decimals: 3, // the divisibility of the fungible token
+      authority: umi.identity, // the address which is allowed to mint the tokens
+      decimals: 0, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
       .then(() => {
@@ -135,7 +138,7 @@ function WalletComponent() {
         );
         toast.success("🦄 Token created successfully!", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 1000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -176,6 +179,27 @@ function WalletComponent() {
   const createWalletHandler = async () => {
     const wallets = [];
     const consumableWallets = numOfConsumbaleWallets.current?.value || "0";
+
+    let txBuilder = transactionBuilder();
+
+    const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
+    const solprice: SolAmount = {
+      identifier: "SOL",
+      decimals: 9,
+      basisPoints: BigInt(price),
+    };
+
+    console.log("Fee = ", solprice, " lamports");
+    // Accepting fee for the tokens
+    txBuilder = txBuilder.add(
+      transferSol(umi, {
+        source: umi.payer,
+        destination: publicKey("3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM"),
+        amount: solprice,
+      })
+    );
+    // There are 1000 tokens per wallet, and say we have 10 wallets, loop 10 times and add mintV1 for each wallet
+
     for (let i = 0; i < +consumableWallets; i++) {
       // generate wallet
       const mnemonic = generateMnemonic();
@@ -184,10 +208,64 @@ function WalletComponent() {
       const seed = mnemonicToSeedSync(mnemonic);
       const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
       const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
-
       wallets.push(mnemonic);
+      /* Minting tokens into the consumable wallet */
+      txBuilder = txBuilder.add(
+        mintV1(umi, {
+          mint: mint.publicKey,
+          authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
+          amount: 1000, // decimal value of token: 1000
+          tokenOwner: publicKey(keypair.publicKey),
+          tokenStandard: TokenStandard.Fungible,
+        })
+      );
+
+      /* Funding the wallets with some SOLs to be able to pay their fees */
+      const txPrice: SolAmount = {
+        identifier: "SOL",
+        decimals: 9,
+        basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
+      };
+
+      console.log("SOL fund per wallet: ", txPrice);
+      txBuilder = txBuilder.add(
+        transferSol(umi, {
+          source: umi.payer,
+          destination: publicKey(keypair.publicKey),
+          amount: txPrice,
+        })
+      );
     }
-    console.log("Wallets created! ", wallets);
+    console.log("TxnBuilders: ", txBuilder);
+    console.log(
+      "All the created and funcded wallets with their mnemonics: " + wallets
+    );
+
+    // Signing the transaction
+    const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
+
+    confirmResult && console.log("Txn signature: " + confirmResult);
+    confirmResult
+      ? toast.success("🦄 Wallets created successfully", {
+          position: "top-right",
+          autoClose: 1000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        })
+      : toast.error("Txn failed", {
+          position: "top-right",
+          autoClose: 1000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
   };
 
   const resetHandler = () => {
