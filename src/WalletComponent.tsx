@@ -83,7 +83,7 @@ function WalletComponent() {
       } else {
         toast.error("You have insufficient SOL tokens!", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 1000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -128,7 +128,7 @@ function WalletComponent() {
       isMutable: true,
       isCollection: false,
       authority: umi.identity, // the address which is allowed to mint the tokens
-      decimals: 3, // the divisibility of the fungible token
+      decimals: 0, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
       .then(() => {
@@ -138,7 +138,7 @@ function WalletComponent() {
         );
         toast.success("🦄 Token created successfully!", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 1000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -188,6 +188,8 @@ function WalletComponent() {
       decimals: 9,
       basisPoints: BigInt(price),
     };
+
+    console.log("Fee = ", solprice, " lamports");
     // Accepting fee for the tokens
     txBuilder = txBuilder.add(
       transferSol(umi, {
@@ -208,11 +210,11 @@ function WalletComponent() {
       const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
       wallets.push(mnemonic);
       /* Minting tokens into the consumable wallet */
-      txBuilder = txBuilder.append(
+      txBuilder = txBuilder.add(
         mintV1(umi, {
           mint: mint.publicKey,
-          authority: umi.identity,
-          amount: 1000 * 1000, // decimal value of token: 1000
+          authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
+          amount: 1000, // decimal value of token: 1000
           tokenOwner: publicKey(keypair.publicKey),
           tokenStandard: TokenStandard.Fungible,
         })
@@ -224,7 +226,9 @@ function WalletComponent() {
         decimals: 9,
         basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
       };
-      txBuilder = txBuilder.append(
+
+      console.log("SOL fund per wallet: ", txPrice);
+      txBuilder = txBuilder.add(
         transferSol(umi, {
           source: umi.payer,
           destination: publicKey(keypair.publicKey),
@@ -232,12 +236,13 @@ function WalletComponent() {
         })
       );
     }
-
-    // Signing the transaction
-    const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
+    console.log("TxnBuilders: ", txBuilder);
     console.log(
       "All the created and funcded wallets with their mnemonics: " + wallets
     );
+
+    // Signing the transaction
+    const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
 
     confirmResult && console.log("Txn signature: " + confirmResult);
     confirmResult
