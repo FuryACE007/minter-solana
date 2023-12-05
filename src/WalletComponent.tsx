@@ -4,10 +4,10 @@
   - The detailed output of the project can be seen in the console log.
   */
 
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField, Typography, Divider } from "@mui/material";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useRef, useState } from "react";
 import {
   SolAmount,
@@ -33,12 +33,15 @@ function WalletComponent() {
   // We are extracting the user input using the useRef() hook
   const [balance, setBalance] = useState(0);
   const [canMintTokens, setCanMintTokens] = useState(false);
+  const [walletsLength, setWalletsLength] = useState(0);
+  const [mnemonics, setMnemonics] = useState([""]);
 
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
   const tokenDescriptionRef = useRef<HTMLInputElement | null>(null);
   const mintAmountRef = useRef<HTMLInputElement | null>(null);
-  const numOfConsumbaleWallets = useRef<HTMLInputElement | null>(null);
+  const numOfConsumbaleWalletsRef = useRef<HTMLInputElement | null>(null);
+  const amountOfTokensPerWalletRef = useRef<HTMLInputElement | null>(null);
 
   // Using the solana wallet adapter to get the connection object and the wallet instance ( to be used only after connecting the wallet )
 
@@ -65,10 +68,10 @@ function WalletComponent() {
   // price calculation function
   const calculateMintPriceInLamports = (amount: number) => {
     const lamports = amount * 0.0000001 * LAMPORTS_PER_SOL; // 0.0000001 SOLs per token
-    return lamports;
+    return Math.ceil(lamports);
   };
 
-  // function triggered when the 'Mint Token' button is clicked
+  // function triggered when the 'Create Token' button is clicked
   const submitHandler = async () => {
     // checking if the web app is connected to the wallet
     if (!connection || !wallet.publicKey) {
@@ -128,7 +131,7 @@ function WalletComponent() {
       isMutable: true,
       isCollection: false,
       authority: umi.identity, // the address which is allowed to mint the tokens
-      decimals: 0, // the divisibility of the fungible token
+      decimals: 3, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
       .then(() => {
@@ -152,11 +155,10 @@ function WalletComponent() {
   // Minting the fungible token using the mpl-token-metadata library's mintV1 function
   const mintHandler = () => {
     const tokensToMint = mintAmountRef.current?.value || 0;
-    const mintPrice = calculateMintPriceInLamports(+tokensToMint);
     mintV1(umi, {
       mint: mint.publicKey,
       authority: umi.identity,
-      amount: +tokensToMint,
+      amount: +tokensToMint * 1000,
       tokenOwner: umi.identity.publicKey,
       tokenStandard: TokenStandard.Fungible,
     })
@@ -178,94 +180,107 @@ function WalletComponent() {
 
   const createWalletHandler = async () => {
     const wallets = [];
-    const consumableWallets = numOfConsumbaleWallets.current?.value || "0";
+    const consumableWallets = numOfConsumbaleWalletsRef.current?.value || "0";
+    const batchSize = 7;
 
-    let txBuilder = transactionBuilder();
-
-    const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
-    const solprice: SolAmount = {
-      identifier: "SOL",
-      decimals: 9,
-      basisPoints: BigInt(price),
-    };
-
-    console.log("Fee = ", solprice, " lamports");
-    // Accepting fee for the tokens
-    txBuilder = txBuilder.add(
-      transferSol(umi, {
-        source: umi.payer,
-        destination: publicKey("3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM"),
-        amount: solprice,
-      })
-    );
     // There are 1000 tokens per wallet, and say we have 10 wallets, loop 10 times and add mintV1 for each wallet
 
-    for (let i = 0; i < +consumableWallets; i++) {
-      // generate wallet
-      const mnemonic = generateMnemonic();
+    for (
+      let batchIndex = 0;
+      batchIndex < Math.ceil(+consumableWallets / batchSize);
+      batchIndex++
+    ) {
+      let txBuilder = transactionBuilder();
 
-      // Load waller from the mnemonic
-      const seed = mnemonicToSeedSync(mnemonic);
-      const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
-      const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
-      wallets.push(mnemonic);
-      /* Minting tokens into the consumable wallet */
-      txBuilder = txBuilder.add(
-        mintV1(umi, {
-          mint: mint.publicKey,
-          authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
-          amount: 1000, // decimal value of token: 1000
-          tokenOwner: publicKey(keypair.publicKey),
-          tokenStandard: TokenStandard.Fungible,
-        })
-      );
-
-      /* Funding the wallets with some SOLs to be able to pay their fees */
-      const txPrice: SolAmount = {
+      const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
+      const solprice: SolAmount = {
         identifier: "SOL",
         decimals: 9,
-        basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
+        basisPoints: BigInt(price),
       };
-
-      console.log("SOL fund per wallet: ", txPrice);
+      // Accepting fee for the tokens
       txBuilder = txBuilder.add(
         transferSol(umi, {
           source: umi.payer,
-          destination: publicKey(keypair.publicKey),
-          amount: txPrice,
+          destination: publicKey(
+            "3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM" // LUCID Wallet Address
+          ),
+          amount: solprice,
         })
       );
+
+      const start = batchIndex * batchSize;
+      const end = Math.min((batchIndex + 1) * batchSize, +consumableWallets);
+
+      for (let i = start; i < end; i++) {
+        // generate wallet
+        const mnemonic = generateMnemonic();
+
+        // Load waller from the mnemonic
+        const seed = mnemonicToSeedSync(mnemonic);
+        const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
+        const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
+        wallets.push(mnemonic);
+
+        /* Minting tokens into the consumable wallet */
+        const amountOfTokensPerWallet =
+          amountOfTokensPerWalletRef.current?.value || "0";
+
+        txBuilder = txBuilder.add(
+          mintV1(umi, {
+            mint: publicKey("2uT3YF6v5178p5mkx62ak11HHmVoxgbzrG9dfhtF879e"), // Minting only the White Toner Cartridge Token
+            authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
+            amount: +amountOfTokensPerWallet * 1000, // decimal value of token: 1000
+            tokenOwner: publicKey(keypair.publicKey),
+            tokenStandard: TokenStandard.Fungible,
+          })
+        );
+
+        /* Funding the wallets with some SOLs to be able to pay their fees */
+        const txPrice: SolAmount = {
+          identifier: "SOL",
+          decimals: 9,
+          basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
+        };
+
+        txBuilder = txBuilder.add(
+          transferSol(umi, {
+            source: umi.payer,
+            destination: publicKey(keypair.publicKey),
+            amount: txPrice,
+          })
+        );
+      }
+      console.log(wallets);
+      setWalletsLength(wallets.length);
+      setMnemonics(wallets);
+
+      // Signing the transaction
+      const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
+
+      confirmResult && console.log("Txn signature: " + confirmResult);
+      confirmResult
+        ? toast.success("🦄 Wallets created successfully", {
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          })
+        : toast.error("Txn failed", {
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
     }
-    console.log("TxnBuilders: ", txBuilder);
-    console.log(
-      "All the created and funcded wallets with their mnemonics: " + wallets
-    );
-
-    // Signing the transaction
-    const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
-
-    confirmResult && console.log("Txn signature: " + confirmResult);
-    confirmResult
-      ? toast.success("🦄 Wallets created successfully", {
-          position: "top-right",
-          autoClose: 1000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        })
-      : toast.error("Txn failed", {
-          position: "top-right",
-          autoClose: 1000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        });
   };
 
   const resetHandler = () => {
@@ -276,7 +291,7 @@ function WalletComponent() {
     <Box
       sx={{
         width: "100%",
-        height: "100vh",
+        height: "100%",
         bgcolor: "#BEADFA",
         display: "flex",
         justifyContent: "center",
@@ -365,11 +380,18 @@ function WalletComponent() {
             </Button>
           </Box>
         )}
+        <Divider />
         <TextField
           id="number-of-consumable-wallets"
           label="Enter the number of consumable wallets to create:"
           variant="outlined"
-          inputRef={numOfConsumbaleWallets}
+          inputRef={numOfConsumbaleWalletsRef}
+        />
+        <TextField
+          id="amount-of-tokens-per-wallet"
+          label="Enter the number of WTC tokens per wallet: "
+          variant="outlined"
+          inputRef={amountOfTokensPerWalletRef}
         />
         <Button
           variant="contained"
@@ -380,6 +402,10 @@ function WalletComponent() {
           {" "}
           Create Wallets{" "}
         </Button>
+        {mnemonics.length > 0 &&
+          mnemonics.map((mnemonic) => (
+            <Typography variant="body2"> // {mnemonic} //</Typography>
+          ))}
       </Box>
     </Box>
   );
