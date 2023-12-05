@@ -179,92 +179,105 @@ function WalletComponent() {
   const createWalletHandler = async () => {
     const wallets = [];
     const consumableWallets = numOfConsumbaleWalletsRef.current?.value || "0";
+    const batchSize = 7;
 
-    let txBuilder = transactionBuilder();
-
-    const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
-    const solprice: SolAmount = {
-      identifier: "SOL",
-      decimals: 9,
-      basisPoints: BigInt(price),
-    };
-
-    console.log("Fee = ", solprice, " lamports");
-    // Accepting fee for the tokens
-    txBuilder = txBuilder.add(
-      transferSol(umi, {
-        source: umi.payer,
-        destination: publicKey("3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM"),
-        amount: solprice,
-      })
-    );
     // There are 1000 tokens per wallet, and say we have 10 wallets, loop 10 times and add mintV1 for each wallet
 
-    for (let i = 0; i < +consumableWallets; i++) {
-      // generate wallet
-      const mnemonic = generateMnemonic();
+    for (
+      let batchIndex = 0;
+      batchIndex < Math.ceil(+consumableWallets / batchSize);
+      batchIndex++
+    ) {
+      let txBuilder = transactionBuilder();
 
-      // Load waller from the mnemonic
-      const seed = mnemonicToSeedSync(mnemonic);
-      const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
-      const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
-      wallets.push(mnemonic);
-      /* Minting tokens into the consumable wallet */
-      const amountOfTokensPerWallet =
-        amountOfTokensPerWalletRef.current?.value || "0";
-      txBuilder = txBuilder.add(
-        mintV1(umi, {
-          mint: publicKey("2uT3YF6v5178p5mkx62ak11HHmVoxgbzrG9dfhtF879e"), // Minting only the White Toner Cartridge Token
-          authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
-          amount: +amountOfTokensPerWallet * 1000, // decimal value of token: 1000
-          tokenOwner: publicKey(keypair.publicKey),
-          tokenStandard: TokenStandard.Fungible,
-        })
-      );
-
-      /* Funding the wallets with some SOLs to be able to pay their fees */
-      const txPrice: SolAmount = {
+      const price = calculateMintPriceInLamports(+consumableWallets * 1000); // 1000 tokens per wallet
+      const solprice: SolAmount = {
         identifier: "SOL",
         decimals: 9,
-        basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
+        basisPoints: BigInt(price),
       };
-
-      console.log("SOL fund per wallet: ", txPrice);
+      // Accepting fee for the tokens
       txBuilder = txBuilder.add(
         transferSol(umi, {
           source: umi.payer,
-          destination: publicKey(keypair.publicKey),
-          amount: txPrice,
+          destination: publicKey(
+            "3moPQrUksj91Pu1LWCAWH8FzQEEQocwBbMCmC1Rc1EaM" // LUCID Wallet Address
+          ),
+          amount: solprice,
         })
       );
+
+      const start = batchIndex * batchSize;
+      const end = Math.min((batchIndex + 1) * batchSize, +consumableWallets);
+
+      for (let i = start; i < end; i++) {
+        // generate wallet
+        const mnemonic = generateMnemonic();
+
+        // Load waller from the mnemonic
+        const seed = mnemonicToSeedSync(mnemonic);
+        const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
+        const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
+        wallets.push(mnemonic);
+
+        /* Minting tokens into the consumable wallet */
+        const amountOfTokensPerWallet =
+          amountOfTokensPerWalletRef.current?.value || "0";
+
+        txBuilder = txBuilder.add(
+          mintV1(umi, {
+            mint: publicKey("2uT3YF6v5178p5mkx62ak11HHmVoxgbzrG9dfhtF879e"), // Minting only the White Toner Cartridge Token
+            authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
+            amount: +amountOfTokensPerWallet * 1000, // decimal value of token: 1000
+            tokenOwner: publicKey(keypair.publicKey),
+            tokenStandard: TokenStandard.Fungible,
+          })
+        );
+
+        /* Funding the wallets with some SOLs to be able to pay their fees */
+        const txPrice: SolAmount = {
+          identifier: "SOL",
+          decimals: 9,
+          basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
+        };
+
+        console.log("SOL fund per wallet: ", txPrice);
+        txBuilder = txBuilder.add(
+          transferSol(umi, {
+            source: umi.payer,
+            destination: publicKey(keypair.publicKey),
+            amount: txPrice,
+          })
+        );
+      }
+      console.log(wallets);
+
+      // Signing the transaction
+      const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
+
+      confirmResult && console.log("Txn signature: " + confirmResult);
+      confirmResult
+        ? toast.success("🦄 Wallets created successfully", {
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          })
+        : toast.error("Txn failed", {
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
     }
-    console.log(wallets);
-
-    // Signing the transaction
-    const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
-
-    confirmResult && console.log("Txn signature: " + confirmResult);
-    confirmResult
-      ? toast.success("🦄 Wallets created successfully", {
-          position: "top-right",
-          autoClose: 1000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        })
-      : toast.error("Txn failed", {
-          position: "top-right",
-          autoClose: 1000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        });
   };
 
   const resetHandler = () => {
