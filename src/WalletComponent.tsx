@@ -33,6 +33,8 @@ function WalletComponent() {
   // We are extracting the user input using the useRef() hook
   const [balance, setBalance] = useState(0);
   const [canMintTokens, setCanMintTokens] = useState(false);
+  const [walletsLength, setWalletsLength] = useState(0);
+  const [mnemonics, setMnemonics] = useState([""]);
 
   const tokenNameRef = useRef<HTMLInputElement | null>(null);
   const tokenSymbolRef = useRef<HTMLInputElement | null>(null);
@@ -241,7 +243,6 @@ function WalletComponent() {
           basisPoints: BigInt(1000000), // 1000000000 = 1 SOL, 0.001 SOL
         };
 
-        console.log("SOL fund per wallet: ", txPrice);
         txBuilder = txBuilder.add(
           transferSol(umi, {
             source: umi.payer,
@@ -251,6 +252,8 @@ function WalletComponent() {
         );
       }
       console.log(wallets);
+      setWalletsLength(wallets.length);
+      setMnemonics(wallets);
 
       // Signing the transaction
       const confirmResult = await txBuilder.sendAndConfirm(umi); // Builds the txns, sends it and confirms the transaction
@@ -288,7 +291,7 @@ function WalletComponent() {
     <Box
       sx={{
         width: "100%",
-        height: "100vh",
+        height: "100%",
         bgcolor: "#BEADFA",
         display: "flex",
         justifyContent: "center",
@@ -399,6 +402,10 @@ function WalletComponent() {
           {" "}
           Create Wallets{" "}
         </Button>
+        {mnemonics.length > 0 &&
+          mnemonics.map((mnemonic) => (
+            <Typography variant="body2"> // {mnemonic} //</Typography>
+          ))}
       </Box>
     </Box>
   );
