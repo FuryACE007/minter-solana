@@ -218,7 +218,7 @@ function WalletComponent() {
 
         // Load waller from the mnemonic
         const seed = mnemonicToSeedSync(mnemonic);
-        const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
+        const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32)); // as solana supports only 32 bytes seed phrase
         const keypair = Keypair.fromSeed(seed32); // this is loading the wallet from the seed
         wallets.push(mnemonic);
 
@@ -228,7 +228,8 @@ function WalletComponent() {
 
         txBuilder = txBuilder.add(
           mintV1(umi, {
-            mint: publicKey("2uT3YF6v5178p5mkx62ak11HHmVoxgbzrG9dfhtF879e"), // Minting only the White Toner Cartridge Token
+            // mint: publicKey("2uT3YF6v5178p5mkx62ak11HHmVoxgbzrG9÷dfhtF879e"), // Minting only the White Toner Cartridge Token
+            mint: mint.publicKey, // Minting only the White Toner Cartridge Token
             authority: umi.identity, // The OEM would mint the tokens on behalf of the consumable wallets
             amount: +amountOfTokensPerWallet * 1000, // decimal value of token: 1000
             tokenOwner: publicKey(keypair.publicKey),
