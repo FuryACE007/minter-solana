@@ -11,6 +11,7 @@ import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useRef, useState } from "react";
 import {
   SolAmount,
+  createSignerFromKeypair,
   generateSigner,
   percentAmount,
   publicKey,
@@ -25,7 +26,7 @@ import {
 } from "@metaplex-foundation/mpl-token-metadata";
 import { useUmi } from "./useUmi";
 import { ToastContainer, toast } from "react-toastify";
-import { generateMnemonic, mnemonicToSeedSync } from "bip39";
+import { generateMnemonic, mnemonicToSeed, mnemonicToSeedSync } from "bip39";
 import "react-toastify/dist/ReactToastify.css";
 import { transferSol } from "@metaplex-foundation/mpl-toolbox";
 
@@ -54,6 +55,7 @@ function WalletComponent() {
   // using our custom hook 'useUmi' to get an instance of the umi
   const umi = useUmi();
   const [mint, setMint] = useState(generateSigner(umi));
+  const [mintAuth, setMintAuth] = useState(umi.identity);
 
   // if (!rpcEndpoint) return <div>Loading</div>; // for type checking, avoid undefined rpcEndpoint
 
@@ -130,7 +132,7 @@ function WalletComponent() {
       sellerFeeBasisPoints: percentAmount(0),
       isMutable: true,
       isCollection: false,
-      authority: umi.identity, // the address which is allowed to mint the tokens
+      authority: mintAuth, // the address which is allowed to mint the tokens, either our connected wallet, or Oem wallet
       decimals: 3, // the divisibility of the fungible token
     })
       .sendAndConfirm(umi)
@@ -176,6 +178,21 @@ function WalletComponent() {
           theme: "light",
         });
       });
+  };
+
+  const createOemWalletHandler = async () => {
+    const mnemonic = generateMnemonic();
+    console.log("Mnemonic: " + mnemonic);
+    const seed = await mnemonicToSeed(mnemonic);
+    const seed32 = new Uint8Array(seed.toJSON().data.slice(0, 32));
+    const keypair = umi.eddsa.createKeypairFromSeed(seed32);
+    const signer = createSignerFromKeypair(umi, keypair);
+    console.log("Pubkey: " + signer.publicKey);
+    // localStorage.setItem("Signer", JSON.stringify(signer));
+    setMintAuth(signer);
+    console.log(
+      "Mint auth for token set to OEM, previously it was Connected wallet address"
+    );
   };
 
   const createWalletHandler = async () => {
@@ -407,6 +424,16 @@ function WalletComponent() {
           mnemonics.map((mnemonic) => (
             <Typography variant="body2"> // {mnemonic} //</Typography>
           ))}
+        <Divider />
+        <Button
+          variant="contained"
+          color="secondary"
+          sx={{ margin: "0.3rem" }}
+          onClick={createOemWalletHandler}
+        >
+          {" "}
+          Create OEM Wallet{" "}
+        </Button>
       </Box>
     </Box>
   );
